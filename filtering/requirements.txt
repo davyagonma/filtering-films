@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+
+# AGONMA DAVY
+scikit-learn
+xlsxwriter
+
