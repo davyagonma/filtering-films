@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  nom                String
+  prenom             String
+  role               String?              @default("organisateur")
+  contact            String
+  password           String
+  pays               String?              @default("")
+  ville              String?              @default("")
+  email              String?              @unique
+  emailVerified      Boolean?             @default(false)
+  verificationCode   String?
+  permission         String?              @default("denied")
+  profile            String?              @default("/user-placeholder.jpeg")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  events             Event[]              @relation("UserEvents")
+  comments           Comment[]            @relation("UserComments")
+  notifications      Notification[]       @relation("UserNotifications")
+  reservations       Reservation[]        @relation("UserReservations")
+  userHistories      UserHistory[]        @relation("UserHistories")
+  Transaction        Transaction[]        @relation("UserTransactions")
+  userAccount        UserAccount[]
+  TransactionHistory TransactionHistory[] @relation("TransactionHistories")
+
+  UserLike UserLike[] @relation("UserLikes")
+}
+
+model Event {
+  id                      String        @id @default(cuid())
+  code                    String
+  nom                     String
+  categorie               String
+  pays                    String
+  ville                   String
+  adresse                 String
+  description             String
+  date_debut              String
+  date_fin                String
+  heure                   String
+  mots_cles               String[]
+  cover                   String
+  tickets                 Json[]
+  place_totale_disponible String
+  status                  String?       @default("en cours")
+  userId                  String
+  retrait                 Boolean?      @default(false)
+  uuid                    String?       @unique
+  like                    Int?          @default(0)
+  commentNbre             Int?          @default(0)
+  availableRetraitDate    DateTime?     @default(dbgenerated("NOW() + interval '1 day'"))
+  admin_validate          Boolean?      @default(false)
+  user                    User          @relation("UserEvents", fields: [userId], references: [id], onDelete: Cascade)
+  comments                Comment[]     @relation("EventComments")
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  reservations            Reservation[] @relation("EventReservations")
+  Transaction             Transaction[] @relation("EventTransaction")
+
+  UserLike UserLike[] @relation("UserLikes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  comments  String
+  eventId   String
+  userId    String
+  event     Event    @relation("EventComments", fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reservation {
+  id            String        @id @default(cuid())
+  uuid          String?
+  nom           String
+  prenom        String
+  email         String
+  price         String?
+  type_ticket   String
+  moyen         String?       @default("MTN")
+  userId        String
+  payement      Boolean?      @default(false)
+  isScan        Boolean?      @default(false)
+  eventId       String
+  event         Event         @relation("EventReservations", fields: [eventId], references: [id], onDelete: Cascade)
+  user          User          @relation("UserReservations", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userHistories UserHistory[] @relation("ReservationHistories")
+}
+
+model Subscriber {
+  id    String @id @default(cuid())
+  email String @unique
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean? @default(false)
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserHistory {
+  id          String      @id @default(cuid())
+  userId      String
+  message     String
+  reference   String
+  avatar      String
+  link        String
+  heure       String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  reservation Reservation @relation("ReservationHistories", fields: [reference], references: [id], onDelete: Cascade)
+  user        User        @relation("UserHistories", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id             String   @id @default(cuid())
+  userId         String
+  eventId        String
+  statut         String?  @default("en cours")
+  type           String?  @default("retrait")
+  montant        String
+  moyen          String
+  account_number String
+  titulaire      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
+  event          Event    @relation("EventTransaction", fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model UserAccount {
+  id         String   @id @default(cuid())
+  userId     String
+  balance    Float    @default(0)
+  eventId    String   @unique
+  commission Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TransactionHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  statut    String?  @default("en cours")
+  montant   String
+  nom       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("TransactionHistories", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserLike {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  isLiked   String   @default("no")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation("UserLikes", fields: [eventId], references: [id], onDelete: Cascade)
+}
